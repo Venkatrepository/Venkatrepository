@@ -1,0 +1,27 @@
+import boto3
+
+def lambda_handler(event, context):
+   client1 = boto3.client('sns')
+
+   ec2_client=boto3.client("ec2")
+
+   message = ""
+   regions = [region['RegionName'] for region in ec2_client.describe_regions()['Regions']]
+
+   for i in regions:
+      ec2_cli=boto3.client("ec2",region_name=i)
+      images=ec2_cli.describe_images(Owners=["self"])
+
+      if len(images['Images']) > 0:
+         message += 'regionname :' + i + ' \n'
+         for ami in images['Images']:
+            if not ami['BlockDeviceMappings'][0]['Ebs']['Encrypted']:
+               message +=  'Image IDs:' + (ami['ImageId'])+'   '+'Encrypted : '+(str(ami['BlockDeviceMappings'][0]['Ebs']['Encrypted'])) + ' \n'
+         print(message)     
+
+   message = "The Following List of non encrypted AMI. Request you to initiate appropirate action. \n " + message
+   response1 = client1.publish(
+       TargetArn=<put the ARN of SNS>,
+       Message=message,
+       Subject='List of non encrypted AMI' 
+      )  
