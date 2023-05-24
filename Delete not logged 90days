@@ -1,0 +1,48 @@
+import json
+import boto3
+from datetime import datetime
+client = boto3.client('iam')
+client1 = boto3.client('sns')
+#iam = boto3.resource('iam')
+
+def lambda_handler(event, context):
+    
+    iam_users = []
+    passwordaccessed=[]
+    x=[]
+    response = client.list_users()
+    #print(response)
+    for user in response['Users']:
+        #print(user['UserName'])
+        if 'PasswordLastUsed' in user:
+        #fetching the time details
+            d1_str=str(user['PasswordLastUsed']) 
+            d3 = datetime.strptime(d1_str, '%Y-%m-%d %H:%M:%S+00:00')
+            d2= str(datetime.now().replace(microsecond=0))
+            d4 = datetime.strptime(d2,'%Y-%m-%d %H:%M:%S')
+            delta = d4-d3
+            #print('Difference',delta.days)
+            if delta.days > 1:
+                passwordaccessed.append(user['UserName'])
+            else:
+                iam_users.append(user['UserName'])
+            
+    #print('iam users- login less than 90 days ', iam_users)
+    print('More than 90 days',passwordaccessed)
+                
+    # DELETING THE USER : 
+    for user in passwordaccessed:
+        response = client.list_attached_user_policies(UserName=user )
+        for i in response['AttachedPolicies']:
+            x.append(i['PolicyArn'])
+        print(x)
+        
+        for j in x:
+            response1 = client.detach_user_policy(  UserName= user , PolicyArn=j )
+        
+        delete_login = client.delete_login_profile(UserName = user)
+        
+        delete_users = client.delete_user(UserName = user )
+        
+    print(passwordaccessed)
+    
