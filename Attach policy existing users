@@ -1,0 +1,28 @@
+import json
+import boto3
+
+#If we use Client object - we face a error   "errorMessage": "'DynamoDB' object has no attribute 'Table'", "errorType": "AttributeError",
+#so we are using resource object instead of client for DynamoDB
+
+dynamodb = boto3.resource('dynamodb')
+client = boto3.client('iam')
+
+def lambda_handler(event, context):
+    # TODO implement
+    a=[]
+    table = dynamodb.Table('permissions')
+    #print(event["user"])
+    b= event["user"]
+    
+    for j in event["permissions"]:
+        response = table.get_item(Key={'Services':j["service"],'Permission':j["previllege"]})
+        print(response)
+        a.append(response['Item']['ARN'])
+    
+    print(a)
+    
+    for i in a:
+        response2 = client.attach_user_policy(
+        UserName=b ,
+        PolicyArn= i  )
+        print(response2)
