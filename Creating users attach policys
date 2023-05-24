@@ -1,0 +1,43 @@
+
+import json
+import boto3
+
+#If we use Client object - we face a error   "errorMessage": "'DynamoDB' object has no attribute 'Table'", "errorType": "AttributeError",
+#so we are using resource object instead of client for DynamoDB
+
+dynamodb = boto3.resource('dynamodb')
+client = boto3.client('iam')
+
+def lambda_handler(event, context):
+    # TODO implement
+    a=['arn:aws:iam::aws:policy/IAMUserChangePassword']
+    table = dynamodb.Table('permissions')
+    #print(event["user"])
+    b= event["user"]
+    
+    #create User 
+    response1 = client.create_user(
+        UserName = b )
+       
+    print(response1)
+    
+    response = client.create_login_profile(
+    UserName=b ,
+    Password='India@12',
+    PasswordResetRequired = True    )
+  
+    for j in event["permissions"]:
+        response = table.get_item(Key={'Services':j["service"],'Permission':j["previllege"]})
+        print(response)
+        #a = response['Item']['ARN']
+        #print(a)
+        a.append(response['Item']['ARN'])
+    
+    print(a)
+    
+    #Attach policy
+    for i in a:
+        response2 = client.attach_user_policy(
+        UserName = b ,
+        PolicyArn= i  )
+        print(response2)
